@@ -11,8 +11,10 @@ const port = 3000;
 app.use(bodyParser.json());
 app.use(cors());
 
-// Connect to MongoDB
-mongoose.connect('mongodb://localhost:27017/Tails', {
+// Connect to MongoDB Atlas
+const MONGODB_URI = 'mongodb+srv://siddusyed99:tile%40123456@tilecluster.v7i64.mongodb.net/Tails?retryWrites=true&w=majority';
+
+mongoose.connect(MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 }).then(() => {
@@ -26,11 +28,13 @@ app.post('/submit-form', async (req, res) => {
   try {
     const { name, email, password, mobile } = req.body;
 
+    // Validate inputs (you can use express-validator here)
+
     // Check if the email or mobile number already exists
     const existingUser = await User.findOne({ $or: [{ email }, { mobile }] });
     if (existingUser) {
       if (existingUser.email === email && existingUser.mobile === mobile) {
-        return res.status(400).json({ error:{email:"Email already registered",mobile:"Mobile number already registered"} });
+        return res.status(400).json({ error: {email: "Email already registered", mobile: "Mobile number already registered"} });
       }
       if (existingUser.email === email) {
         return res.status(400).json({ error: 'Email already registered' });
@@ -39,8 +43,11 @@ app.post('/submit-form', async (req, res) => {
         return res.status(400).json({ error: 'Mobile number already registered' });
       }
     }
+
+    // Create new user
     const newUser = new User({ name, email, password, mobile });
     await newUser.save();
+
     res.status(201).json({ message: 'User created successfully!', user: newUser });
   } catch (err) {
     console.error('Error:', err);
@@ -55,9 +62,7 @@ app.post('/login', async (req, res) => {
 
     // Find the user by email
     const user = await User.findOne({ email });
-    
-    
-    
+
     // Check if the email exists
     if (!user) {
       return res.status(400).json({ error: 'Invalid email' });
