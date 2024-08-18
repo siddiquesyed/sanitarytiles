@@ -2,18 +2,15 @@ const express = require('express');
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const cors = require('cors');
-const punycode = require('punycode'); // Import the punycode module
+const bcrypt = require('bcrypt'); // Import bcrypt for password hashing
 const User = require('./models/User'); // Import the User model
 
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 3000;
 
 // Middleware
 app.use(bodyParser.json());
 app.use(cors());
-
-// Set Mongoose `strictQuery` option
-mongoose.set('strictQuery', true); // Set to true to maintain current behavior
 
 // Connect to MongoDB Atlas
 const MONGODB_URI = 'mongodb+srv://siddusyed99:tile%40123456@tilecluster.v7i64.mongodb.net/Tails?retryWrites=true&w=majority';
@@ -37,7 +34,7 @@ app.post('/submit-form', async (req, res) => {
     const existingUser = await User.findOne({ $or: [{ email }, { mobile }] });
     if (existingUser) {
       if (existingUser.email === email && existingUser.mobile === mobile) {
-        return res.status(400).json({ error: {email: "Email already registered", mobile: "Mobile number already registered"} });
+        return res.status(400).json({ error: { email: "Email already registered", mobile: "Mobile number already registered" } });
       }
       if (existingUser.email === email) {
         return res.status(400).json({ error: 'Email already registered' });
@@ -47,8 +44,11 @@ app.post('/submit-form', async (req, res) => {
       }
     }
 
+    // Hash the password before saving
+    const hashedPassword = await bcrypt.hash(password, 10);
+
     // Create new user
-    const newUser = new User({ name, email, password, mobile });
+    const newUser = new User({ name, email, password: hashedPassword, mobile });
     await newUser.save();
 
     res.status(201).json({ message: 'User created successfully!', user: newUser });
@@ -68,12 +68,13 @@ app.post('/login', async (req, res) => {
 
     // Check if the email exists
     if (!user) {
-      return res.status(400).json({ error: 'Invalid email' });
+      return res.status(400).json({ error: 'Invalid email or password' });
     }
 
-    // Check if the provided password matches the stored password
-    if (user.password !== password) {
-      return res.status(400).json({ error: 'Invalid password' });
+    // Check if the provided password matches the stored hashed password
+    const passwordMatch = await bcrypt.compare(password, user.password);
+    if (!passwordMatch) {
+      return res.status(400).json({ error: 'Invalid email or password' });
     }
 
     // If the credentials are correct
