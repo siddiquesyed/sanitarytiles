@@ -2,6 +2,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const cors = require('cors');
+const punycode = require('punycode'); // Import the punycode module
 const User = require('./models/User'); // Import the User model
 
 const app = express();
@@ -11,9 +12,11 @@ const port = 3000;
 app.use(bodyParser.json());
 app.use(cors());
 
+// Set Mongoose `strictQuery` option
+mongoose.set('strictQuery', true); // Set to true to maintain current behavior
+
 // Connect to MongoDB Atlas
 const MONGODB_URI = 'mongodb+srv://siddusyed99:tile%40123456@tilecluster.v7i64.mongodb.net/Tails?retryWrites=true&w=majority';
-
 mongoose.connect(MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
